@@ -8,9 +8,9 @@ def get_calendar_download_link():
 
 def create_button(command, from_callback=False):
     template = {
-        "/start":           [("Lihat Dokumentasi","https://github.com/elmoallistair/gunadarma-telegram-bot/README.md"),
+        "/start":           [("Lihat Dokumentasi","https://github.com/elmoallistair/gunadarma-telegram-bot/blob/main/README.md"),
                              ("Lihat Source Code","https://github.com/elmoallistair/gunadarma-telegram-bot")],
-        "/help":            [("Lihat Dokumentasi","https://github.com/elmoallistair/gunadarma-telegram-bot/README.md")],
+        "/help":            [("Lihat Dokumentasi","https://github.com/elmoallistair/gunadarma-telegram-bot/blob/main/README.md")],
         "/kalendar":        [("Download sebagai PDF", f"{get_calendar_download_link()}")],
         "/berita":          [("Kunjungi Website", "https://berita.gunadarma.ac.id")],
         "/jam_kuliah":      [("Cara Membaca Jadwal", "")],

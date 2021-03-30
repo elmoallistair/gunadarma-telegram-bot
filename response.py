@@ -92,7 +92,7 @@ def create_reply(update, context, command):
             sorted_data = OrderedDict(sorted(data.items(), key=lambda x: getitem(x[1], "date"), reverse=True))
             for id in sorted_data.keys():
                 _, date, title, url = sorted_data[id].values()
-                content += f"🗞 [{id}] <b>({date}) </b> <a href='{url}'>{title}</a>\n"
+                content += f"🗞 <b>({date} - {id})  <a href='{url}'>{title}</a></b>\n"
             text = template_from_file(command).format(content)
     elif command == "/loker":
         data = load_data_from_yaml(command)
@@ -101,8 +101,7 @@ def create_reply(update, context, command):
         print(sorted_data)
         for id in sorted_data.keys():
             date, title, url = sorted_data[id].values()
-            print(date, title, url)
-            text += f"🗞 <b>({date})</b> <b><a href='{url}'>{title}</a></b>\n"
+            text += f"🗞 <b>({date})  <a href='{url}'>{title}</a></b>\n"
     else:
         text = template_from_file(command)
     
