@@ -4,6 +4,9 @@ Bot ini merupakan sarana pengaksesan informasi akademik alternatif untuk civitas
 
 https://t.me/gunadarma_bot
 
+
+![demo](demo.png)
+
 &nbsp;
 
 ## Daftar perintah
