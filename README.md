@@ -1,4 +1,4 @@
-## Gunadarma Telegram BOT
+## Gunadarma Telegram Bot
 
 Bot ini merupakan sarana pengaksesan informasi akademik alternatif untuk civitas akademika Universitas Gunadarma.
 
@@ -10,6 +10,8 @@ https://t.me/gunadarma_bot
 &nbsp;
 
 ## Daftar perintah
+
+Anda dapat berinteraksi dengan Bot ini menggunakan perintah yang tersedia.
 
 | Perintah                     | Deskripsi                                   |
 |------------------------------|---------------------------------------------|
