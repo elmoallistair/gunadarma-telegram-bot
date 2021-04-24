@@ -1,157 +1,198 @@
 from selenium import webdriver 
-from selenium.webdriver.chrome.options import Options as ChromeOptions 
 import os
 import re
 import yaml
 
 def set_driver():
-    options = ChromeOptions()
+    options = webdriver.FirefoxOptions()
+    # options = webdriver.ChromeOptions()
     options.add_argument("--headless")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--no-sandbox")
-    driver = webdriver.Chrome(options=options)
     # options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
-    # driver = webdriver.Chrome(executable_path=os.environ.get("CHROMEDRIVER_PATH"), chrome_options=chrome_options)
+    # driver = webdriver.Chrome(executable_path=os.environ.get("CHROMEDRIVER_PATH"), options=options)
+    
+    # For testing
+    # driver = webdriver.Chrome(options=options)
+    driver = webdriver.Firefox(options=options)
+    driver.set_window_size(1920, 1080)
 
     return driver
 
+def open_website(driver, url):
+    """Open the website and check if the website is accessible"""
+    driver.get(url)
+    if driver.title == "":
+        raise AssertionError("Error accessing website")
+    return driver
+
+def get_xpath(key):
+    """Get xpath location from yaml file"""
+    data = yaml.load(open("xpath_location.yaml"), Loader=yaml.FullLoader)
+    return data[key]
+
 def write_to_yaml(data, yaml_path):
+    """Save scraping result to yaml file"""
     with open(yaml_path, "w") as yaml_file:
         yaml.dump(data, yaml_file)
 
 def screenshot_element(element, img_path):
+    """Screenshot element from web page"""
     screenshot = element.screenshot_as_png
     with open(img_path, "wb") as file:
         file.write(screenshot)
 
 def scraping_kalendar_akademik():
     driver = set_driver()
-    driver.get("https://baak.gunadarma.ac.id")
-    title = driver.find_element_by_xpath("//div[@class='cell-sm-6 cell-md-6']/h3")
-    table = driver.find_element_by_xpath("//table[@class='table table-custom table-primary bordered-table table-striped table-fixed stacktable large-only']") 
-    url_download = driver.find_element_by_xpath("//p[@class='text-primary']/a")
-    url_file = url_download.get_attribute("href")
-    caption = title.text
+    xpath = get_xpath("kalendar")
 
-    img_path = "scrape_files/img/kalendar_akademik.png"
-    yaml_path = "scrape_files/data/kalendar.yaml"
-    data = {"caption":caption, "img_path":img_path, "url_file": url_file}
+    try:
+        open_website(driver, "https://baak.gunadarma.ac.id")
+        caption = driver.find_element_by_xpath(xpath["title"]).text
+        table = driver.find_element_by_xpath(xpath["table"])
+        url_file = driver.find_element_by_xpath(xpath["url"]).get_attribute("href")
 
-    screenshot_element(table, img_path)
-    write_to_yaml(data, yaml_path)
-    driver.quit() 
+        img_path = "scrape_files/img/kalendar_akademik.png"
+        yaml_path = "scrape_files/data/kalendar.yaml"
+        screenshot_element(table, img_path)
+        
+        data = {"caption":caption, "img_path":img_path, "url_file": url_file}
+        write_to_yaml(data, yaml_path)
+
+        print("Successfull scraping 'kalendar'")
+        driver.quit() 
+    
+    except Exception as e:
+        print(f"Failed scraping 'kalendar' ({e})")
 
 def scraping_jam_kuliah():
     driver = set_driver()
-    driver.get("https://baak.gunadarma.ac.id/kuliahUjian/6#undefined6")
-    table = driver.find_elements_by_xpath("//table[@class='table table-custom table-primary table-fixed stacktable cell-xs-6']")
+    xpath = get_xpath("jam_kuliah")
     
-    img_path = "scrape_files/img/jam_kuliah.png"
-    yaml_path = "scrape_files/data/jam_kuliah.yaml"
-    data = {"img_path":img_path}
-    
-    screenshot_element(table[0], img_path)
-    write_to_yaml(data, yaml_path)
-    driver.quit() 
+    try:
+        open_website(driver, "https://baak.gunadarma.ac.id/kuliahUjian/6#undefined6")
+        table = driver.find_elements_by_xpath(xpath["table"])
+        
+        img_path = "scrape_files/img/jam_kuliah.png"
+        yaml_path = "scrape_files/data/jam_kuliah.yaml"
+        screenshot_element(table[0], img_path)
+        
+        data = {"img_path":img_path}
+        write_to_yaml(data, yaml_path)
+
+        print("Successfull scraping 'jam_kuliah'")
+        driver.quit()
+
+    except Exception as e:
+        print(f"Failed scraping 'jam_kuliah'\n{e}")
     
 def scraping_jadwal_kuliah(class_or_lecturer):
     driver = set_driver()
-    driver.get("https://baak.gunadarma.ac.id/jadwal/cariJadKul")
-    form_input = driver.find_element_by_xpath("//input[@class='form-search-input form-control']")
-    form_submit = driver.find_element_by_xpath("//button[@class='form-search-submit']")
-    form_input.send_keys(class_or_lecturer)
-    form_submit.click()
-
+    xpath = get_xpath("jadwal_kuliah")
     try:
-        table = driver.find_element_by_xpath("//table[@class='table table-custom table-primary table-fixed bordered-table stacktable large-only']")
-    except:
-        return None
+        open_website(driver, "https://baak.gunadarma.ac.id/jadwal/cariJadKul")
+        form_input = driver.find_element_by_xpath(xpath["form_input"])
+        form_submit = driver.find_element_by_xpath(xpath["form_submit"])
+        form_input.send_keys(class_or_lecturer)
+        form_submit.click()
 
-    title = driver.find_elements_by_xpath("//h3[@class='veil reveal-sm-block']")[0].text
-    notes = driver.find_element_by_xpath("//p[@class='text-md-left']").text
-    filename = re.sub(r'[ /]', '_', title).lower()
+        try:
+            table = driver.find_element_by_xpath(xpath["table"])
+        except:
+            return None
 
-    caption = f"""
-        {title}\n
-        Untuk Input : <b>{class_or_lecturer.upper()}</b>
-        {notes}
-    """
+        title = driver.find_elements_by_xpath(xpath["title"])[0].text
+        valid_from = driver.find_element_by_xpath(xpath["valid_from"]).text
 
-    img_path = f"scrape_files/img/{class_or_lecturer.replace(' ','_')}_jadwal.png"
-    screenshot_element(table, img_path)
-    driver.quit()
+        filename = re.sub(r'[ /]', '_', title).lower()
+        caption = f"<b>{title}</b>\n\nUntuk Input : <b>{class_or_lecturer.upper()}</b>\n{valid_from}"
+        img_path = f"scrape_files/img/{class_or_lecturer.replace(' ','_')}_jadwal.png"
 
-    return img_path, caption
+        screenshot_element(table, img_path)
+        driver.quit()
+
+        return img_path, caption
+
+    except Exception as e:
+       raise e
 
 def scraping_berita():
     driver = set_driver()
-    driver.get("https://baak.gunadarma.ac.id/berita")
-    title_url = driver.find_elements_by_xpath("//div[@class='post-news-body']/h6/a")
-    date = driver.find_elements_by_xpath("//span[@class='text-middle inset-left-10 text-italic text-black']")
-
-    post_title = [post.text for post in title_url]
-    post_url = [post.get_attribute("href") for post in title_url]
-    post_id = [re.search("berita/(\d+)", post).group(1) for post in post_url]
-    post_date = [post.text for post in date]
+    xpath = get_xpath("berita")
     
-    post_content = []
-    for url in post_url:
-        driver.get(url)
-        elements = driver.find_elements_by_xpath("//div[@class='offset-top-30']")
-        page_content = elements[0].text
-        page_content = re.sub("[ \-\w\(\)\d]+(?:.doc|.pdf)", "", page_content).strip()
-        post_content.append(page_content)
+    try:
+        open_website(driver, "https://baak.gunadarma.ac.id/berita")
+        title_url = driver.find_elements_by_xpath(xpath["title_and_url"])
+        date = driver.find_elements_by_xpath(xpath["date"])
 
-    contents = [*zip(post_id, post_title, post_url, post_date, post_content)]
-    data = {}
-    for id, title, url, date, content in contents:
-        data[id] = {"title":title, "url":url, "date":date, "content":content}
-    
-    yaml_path = "scrape_files/data/berita.yaml"
-    write_to_yaml(data, yaml_path)
-    driver.quit()
+        post_title = [post.text for post in title_url]
+        post_url = [post.get_attribute("href") for post in title_url]
+        post_id = [re.search("berita/(\d+)", post).group(1) for post in post_url]
+        post_date = [post.text for post in date]
+
+        post_content = []
+        for url in post_url: # scrape every post
+            driver.get(url)
+            page_content = driver.find_elements_by_xpath(xpath["page_content"])
+            content = page_content[0].text
+            content = re.sub("[ \-\w\(\)\d]+(?:.doc|.pdf)", "", content).strip()
+            post_content.append(content)
+
+        contents = zip(post_id, post_title, post_url, post_date, post_content)
+        data = {}
+        for id, title, url, date, content in contents:
+            data[id] = {"title":title, "url":url, "date":date, "content":content}
+
+        yaml_path = "scrape_files/data/berita.yaml"
+        write_to_yaml(data, yaml_path)
+        driver.quit()
+        print("Successfull scraping 'berita'")
+
+    except Exception as e:
+        print(f"Failed scraping 'berita'\n{e}")
 
 def scraping_loker():
     driver = set_driver()
-    driver.get("http://career.gunadarma.ac.id/")
-    elements = driver.find_elements_by_xpath("//div[@class='views-field views-field-title']/span/a")
-
-    post_title = [element.text for element in elements]
-    post_url = [element.get_attribute("href") for element in elements]
-    post_id = [re.search("node/(\d+)", url).group(1) for url in post_url]
+    xpath = get_xpath("loker")
     
-    post_date = []
-    for url in post_url:
-        driver.get(url)
-        elements = driver.find_elements_by_xpath("//span[@class='meta submitted']")
-        date_posted = re.search("\d{2}/\d{2}/\d{4}", elements[0].text)[0]
-        post_date.append(date_posted)
+    try:
+        open_website(driver, "http://career.gunadarma.ac.id/")
+        elements = driver.find_elements_by_xpath(xpath["title_and_url"])
 
-    contents = [*zip(post_id, post_title, post_url, post_date)]
-    data = {}
-    for id, title, url, date in contents:
-        data[id] = {"date":date, "title":title, "url":url}
-    
-    yaml_path = "scrape_files/data/loker.yaml"
-    write_to_yaml(data, yaml_path)
-    driver.quit()
+        post_title = [element.text for element in elements]
+        post_url = [element.get_attribute("href") for element in elements]
+        post_id = [re.search("node/(\d+)", url).group(1) for url in post_url]
+
+        post_date = []
+        for url in post_url: # scrape every post
+            driver.get(url)
+            elements = driver.find_elements_by_xpath("//span[@class='meta submitted']")
+            date_posted = re.search("\d{2}/\d{2}/\d{4}", elements[0].text)[0]
+            post_date.append(date_posted)
+
+        contents = zip(post_id, post_title, post_url, post_date)
+        data = {}
+        for id, title, url, date in contents:
+            data[id] = {"date":date, "title":title, "url":url}
+
+        yaml_path = "scrape_files/data/loker.yaml"
+        print(data)
+        write_to_yaml(data, yaml_path)
+
+        print("Successfull scraping 'loker'")
+        driver.quit()
+
+    except Exception as e:
+        print(f"Failed scraping 'berita'\n{e}")
 
 def start_scraping():
-    print("Scraping http://baak.gunadarma.ac.id ...")
+    """Start scraping"""
     scraping_berita()
-    print("- Data 'berita' saved in scrape_files/data/berita.yaml")
     scraping_jam_kuliah()
-    print("- Data 'jam_kuliah' saved in scrape_files/data/jam_kuliah.yaml")
     scraping_kalendar_akademik()
-    print("- Data 'kalendar' saved in scrape_files/data/kalendar.yaml")
-    
-    print("Scraping http://career.gunadarma.ac.id ...")
     scraping_loker()
-    print("- Data 'loker' saved in scrape_files/data/loker.yaml")
 
 if __name__ == "__main__":
-    # update data
+    print("Testing scraping...")
     start_scraping()
-
-    # test jadwal
-    scraping_jadwal_kuliah("3ka17")
+    # scraping_jadwal_kuliah("3ka17")
