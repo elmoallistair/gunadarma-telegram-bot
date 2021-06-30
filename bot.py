@@ -6,6 +6,7 @@ import datetime
 import logging
 import response
 import scraping
+import os
 
 def read_token(config_file):
     """Read token from config file"""
@@ -19,7 +20,6 @@ def error(update, context):
 
 def reply(update, context):
     """Reply the user message"""
-    chat_id = update.message.chat.id
     message = update.message.text.lower()
     command = response.validate_message(message) 
 
@@ -27,19 +27,18 @@ def reply(update, context):
         response.reply_message(update, context, command)
     else:
         update.message.reply_text("Perintah tidak dikenali.")
-
+    
 def callback_query_handler(update, context):
     """Handle callback query"""
     callback_query = update.callback_query
     callback_name = callback_query.data
-    
-    text = response.template_from_file(callback_name, from_callback=True)
+    callback_reply = response.get_template(f"callback/{callback_name}.html")
     keyboard = button.create_button_from_callback(callback_name)
 
-    if callback_name == "/jadwal_callback_0":
-        callback_query.message.edit_caption(caption=text, parse_mode=ParseMode.HTML)
+    if callback_name == "jadwal_callback":
+        callback_query.message.edit_caption(caption=callback_reply, parse_mode=ParseMode.HTML)
     else:
-        callback_query.edit_message_text(text=text, reply_markup=keyboard, parse_mode=ParseMode.HTML)
+        callback_query.edit_message_text(text=callback_reply, reply_markup=keyboard, parse_mode=ParseMode.HTML)
 
 def update_data(context):
     """Start scraping for update file"""
@@ -47,7 +46,8 @@ def update_data(context):
 
 def main():
     """Start the bot"""
-    token = read_token("config.cfg")
+    # token = read_token("config.cfg")
+    token = os.environ.get("TOKEN")
     updater = Updater(token)
     
     # Dispatcher for register handlers
